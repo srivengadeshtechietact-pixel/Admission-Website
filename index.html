@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Failure Consultancy Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{margin:0;font-family:Arial,sans-serif;color:white;background:#000;font-size:14px;}
+.login-page{width:100%;height:100vh;display:flex;justify-content:center;align-items:center;background:url("https://images.unsplash.com/photo-1497366216548-37526070297c") no-repeat center/cover;}
+.auth-wrapper{width:360px;text-align:center;background:rgba(0,0,0,0.85);padding:20px;border-radius:12px;box-shadow:0 0 20px #00c6ff;}
+input,select,button,textarea{width:100%;height:35px;margin:5px 0;border:none;border-radius:5px;background:#222;color:white;padding:6px;box-sizing:border-box;}
+textarea{height:60px;}
+button{background:#00c6ff;font-weight:bold;cursor:pointer;}
+button:hover{background:#00e6ff;color:black;}
+.sidebar{width:200px;height:100vh;background:#111;padding:15px;position:fixed;display:none;}
+.sidebar a{display:block;color:white;margin:6px 0;padding:6px;border-radius:5px;text-decoration:none;}
+.sidebar a:hover{background:#00c6ff;color:black;}
+.main{margin-left:220px;min-height:100vh;display:none;padding:20px;background:url("https://images.unsplash.com/photo-1523240795612-9a054b0db644") no-repeat center/cover;background-size:cover;}
+.overlay{width:95%;max-width:1100px;margin:auto;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.card{height:80px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(0,0,0,0.85);border-radius:8px;box-shadow:0 0 8px #00c6ff;}
+.form-box{width:100%;max-width:450px;margin:auto;background:rgba(0,0,0,0.85);padding:15px;border-radius:10px;}
+table{width:100%;max-width:1100px;margin:auto;border-collapse:collapse;background:rgba(0,0,0,0.9);table-layout:fixed;font-size:13px;}
+th,td{text-align:center;padding:6px 4px;border-bottom:1px solid #333;word-wrap:break-word;}
+th{background:#111;}
+tr:hover{background:rgba(0,200,255,0.25);}
+img{width:35px;height:35px;border-radius:50%;object-fit:cover;}
+.search-box{width:100%;max-width:450px;margin:auto 0 15px;display:flex;gap:6px;}
+.search-box input, .search-box select{flex:1;}
+.pagination{display:flex;justify-content:center;gap:10px;margin-top:15px;}
+.pagination button{width:auto;padding:5px 15px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="login-page" id="loginPage">
+  <div class="auth-wrapper">
+    <h2>Failure Consultancy</h2>
+    <input type="text" id="loginUser" placeholder="Username">
+    <input type="password" id="loginPass" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <a href="#" onclick="showForgotPassword()" style="display:block;margin-top:10px;color:#00c6ff;text-decoration:none;font-size:12px;">Forgot Password?</a>
+    <p id="loginMsg" style="color:red;margin-top:6px;"></p>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <a href="#" onclick="showSection('dashboardSection')">Dashboard</a>
+  <a href="#" onclick="showSection('studentsSection')">Students</a>
+  <a href="#" onclick="showSection('attendanceSection')">Staff Attendance</a>
+  <a href="#" onclick="showSection('staffProfilesSection')">Staff Directory</a>
+  <a href="#" onclick="showSection('usersSection')" id="usersLink" style="display:none;">Manage App Users</a>
+  <a href="#" onclick="logout()">Logout</a>
+</div>
+
+<!-- DASHBOARD -->
+<div class="main" id="dashboardSection">
+  <div class="overlay">
+    <div class="cards">
+      <div class="card">Total Students<br><span id="count">0</span></div>
+      <div class="card">Admissions Today<br><span id="today">0</span></div>
+      <div class="card">Paid<br><span id="paidCount">0</span></div>
+      <div class="card">Pending<br><span id="pendingCount">0</span></div>
+    </div>
+    <canvas id="courseChart" style="background:rgba(0,0,0,0.6);border-radius:10px;padding:10px;"></canvas>
+    <button style="margin-top:10px;" onclick="exportCSV()">Export Students CSV</button>
+  </div>
+</div>
+
+<!-- STUDENTS -->
+<div class="main" id="studentsSection">
+  <div class="overlay">
+    <div class="form-box">
+      <h3>Add / Edit Student</h3>
+      <form id="studentForm" onsubmit="submitStudent(event)">
+        <input type="hidden" id="editId">
+        <input type="text" id="name" placeholder="Student Name" required>
+        <input type="tel" id="phone" placeholder="Phone Number" required>
+        <input type="email" id="email" placeholder="Email">
+        <input type="text" id="parent" placeholder="Parent Name">
+        <input type="text" id="address" placeholder="Address">
+        <textarea id="notes" placeholder="Notes"></textarea>
+
+        <!-- ALL COURSES -->
+        <select id="course" required>
+          <optgroup label="Engineering (BE / B.Tech)">
+            <option>BE - Computer Science</option>
+            <option>BE - Mechanical</option>
+            <option>BE - Civil</option>
+            <option>BE - ECE</option>
+            <option>BE - EEE</option>
+            <option>B.Tech - IT</option>
+            <option>B.Tech - AI & Data Science</option>
+          </optgroup>
+          <optgroup label="Medical Courses">
+            <option>MBBS</option>
+            <option>BDS</option>
+            <option>BAMS</option>
+            <option>BHMS</option>
+            <option>D.Pharm</option>
+            <option>B.Pharm</option>
+            <option>B.Sc Nursing</option>
+          </optgroup>
+          <optgroup label="Science Courses">
+            <option>BSc - Computer Science</option>
+            <option>BSc - Mathematics</option>
+            <option>BSc - Physics</option>
+            <option>BSc - Chemistry</option>
+            <option>BSc - Biotechnology</option>
+            <option>BSc - Microbiology</option>
+            <option>BSc - Data Science</option>
+            <option>BSc - Artificial Intelligence</option>
+          </optgroup>
+          <optgroup label="Computer Related Courses">
+            <option>BCA - Computer Applications</option>
+            <option>BSc - Information Technology</option>
+            <option>BSc - Software Engineering</option>
+            <option>BSc - Cyber Security</option>
+            <option>BSc - Cloud Computing</option>
+          </optgroup>
+          <optgroup label="Commerce Courses">
+            <option>BCom - General</option>
+            <option>BCom - Accounting & Finance</option>
+            <option>BCom - Computer Applications</option>
+            <option>BBA - Business Administration</option>
+            <option>BBA - Logistics</option>
+            <option>BBA - Aviation</option>
+          </optgroup>
+          <optgroup label="Arts Courses">
+            <option>BA - English</option>
+            <option>BA - History</option>
+            <option>BA - Economics</option>
+            <option>BA - Political Science</option>
+            <option>BA - Sociology</option>
+          </optgroup>
+        </select>
+
+        <label>Photo</label>
+        <input type="file" id="photo" accept="image/*">
+        <button type="submit">Add / Update Student</button>
+      </form>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search by name, phone, course" onkeyup="displayStudents()">
+      <select id="paymentFilter" onchange="displayStudents()">
+        <option value="all">All Payments</option>
+        <option value="Paid">Paid</option>
+        <option value="Pending">Pending</option>
+      </select>
+    </div>
+
+    <table id="studentTable">
+      <tr>
+        <th>ID</th><th>Photo</th><th>Name</th><th>Phone</th><th>Email</th><th>Parent</th><th>Address</th><th>Notes</th><th>Course</th><th>Payment</th><th>Action</th>
+      </tr>
+    </table>
+    <div class="pagination">
+        <button onclick="prevPage()">Prev</button>
+        <span id="pageInfo" style="margin-top: 10px;">Page 1</span>
+        <button onclick="nextPage()">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF ATTENDANCE -->
+<div class="main" id="attendanceSection">
+  <div class="overlay">
+    <div class="form-box">
+      <h3>Staff Attendance</h3>
+      <form id="attendanceForm" onsubmit="submitAttendance(event)">
+        <input type="hidden" id="attEditId">
+        <input type="text" id="attStaffName" placeholder="Staff Name" required>
+        <input type="date" id="attDate" required>
+        <select id="attStatus" required>
+          <option value="Present">Present</option>
+          <option value="Absent">Absent</option>
+          <option value="Half-Day">Half-Day</option>
+          <option value="Leave">Leave</option>
+        </select>
+        <textarea id="attNotes" placeholder="Notes (Optional)"></textarea>
+        <button type="submit">Save Attendance</button>
+      </form>
+    </div>
+
+    <table id="attendanceTable" style="margin-top: 20px;">
+      <tr>
+        <th>Date</th><th>Staff Name</th><th>Status</th><th>Notes</th><th>Action</th>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- STAFF PROFILES SECTION -->
+<div class="main" id="staffProfilesSection">
+  <div class="overlay">
+    <div class="form-box">
+      <h3>Add / Edit Staff Details</h3>
+      <form id="staffProfileForm" onsubmit="submitStaffProfile(event)">
+        <input type="hidden" id="staffEditId">
+        <input type="text" id="staffName" placeholder="Full Name" required>
+        <input type="email" id="staffEmail" placeholder="Email" required>
+        <input type="text" id="staffPhone" placeholder="Phone Number" required>
+        <input type="text" id="staffAadhaar" placeholder="Aadhaar Number" required>
+        <input type="text" id="staffAddress" placeholder="Address" required>
+        <input type="text" id="staffExperience" placeholder="Work Experience (e.g., 5 Years)" required>
+        <input type="text" id="staffCertificates" placeholder="Certificates (comma separated)">
+        <select id="staffRole">
+          <option value="staff">Staff</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button type="submit">Save Staff Profile</button>
+      </form>
+    </div>
+
+    <div class="search-box" style="margin-top: 20px;">
+      <input type="text" id="staffSearchInput" placeholder="Search Staff by Name..." onkeyup="displayStaffProfiles()">
+    </div>
+
+    <table id="staffProfilesTable" style="margin-top: 20px;">
+      <tr>
+        <th>Name</th><th>Email</th><th>Phone</th><th>Aadhaar</th><th>Experience</th><th>Role</th><th>Action</th>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- USERS SECTION (Admin Only) -->
+<div class="main" id="usersSection">
+  <div class="overlay">
+    <div class="form-box">
+      <h3>Add Staff / Manager</h3>
+      <form id="userForm" onsubmit="submitUser(event)">
+        <input type="text" id="userName" placeholder="Name (Username)" required>
+        <input type="email" id="userEmail" placeholder="Email" required>
+        <input type="password" id="userPassword" placeholder="Password" required>
+        <select id="userRole" required>
+          <option value="staff">Staff</option>
+          <option value="manager">Manager</option>
+        </select>
+        <button type="submit">Add User</button>
+      </form>
+    </div>
+
+    <div class="form-box" style="margin-top: 20px; max-width: 800px;">
+      <h3>Registered Staff/Admins</h3>
+      <table id="usersTable" style="margin-top: 10px;">
+        <tr>
+          <th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Action</th>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let students = [];
+let courseChart = null;
+let sessionTimeout;
+let currentPage = 1;
+let totalPages = 1;
+
+const API_BASE = "http://localhost:5000/api";
+
+function getAuthHeaders() {
+    return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + localStorage.getItem("token")
+    };
+}
+
+// LOGIN
+async function login() {
+    let user = document.getElementById("loginUser").value;
+    let pass = document.getElementById("loginPass").value;
+    let loginMsg = document.getElementById("loginMsg");
+
+    try {
+        let res = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+
+        let data = await res.json();
+
+        if (data.success) {
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("role", data.role);
+            loginMsg.innerText = "";
+            startApp();
+            startSessionTimer();
+        } else {
+            loginMsg.innerText = data.message || "Invalid credentials";
+        }
+
+    } catch (err) {
+        console.log(err);
+        loginMsg.innerText = "Server error";
+    }
+}
+
+function startSessionTimer(){
+  clearTimeout(sessionTimeout);
+  sessionTimeout = setTimeout(() => { alert("Session expired! Logging out..."); logout(); }, 10 * 60 * 1000);
+}
+
+function logout(){
+  localStorage.removeItem("isLoggedIn");
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  localStorage.removeItem("lastSection");
+  location.reload();
+}
+
+function showSection(id){
+  document.querySelectorAll(".main").forEach(sec => sec.style.display = "none");
+  document.getElementById(id).style.display = "block";
+  localStorage.setItem("lastSection", id);
+}
+
+async function showChangePassword() {
+    let current = prompt("Enter current password:");
+    if (!current) return;
+    let newPass = prompt("Enter new password (min 6 characters):");
+    if (!newPass) return;
+
+    try {
+        let res = await fetch(`${API_BASE}/auth/change-password`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ currentPassword: current, newPassword: newPass })
+        });
+        let data = await res.json();
+        if (data.success) {
+            alert("Password changed successfully! Please login again.");
+            logout();
+        } else {
+            alert(data.message || (data.errors ? JSON.stringify(data.errors) : "Error"));
+        }
+    } catch (err) {
+        alert("Server error");
+    }
+}
+
+function startApp(){
+  document.getElementById("loginPage").style.display = "none";
+  document.getElementById("sidebar").style.display = "block";
+  
+  if(localStorage.getItem("role") === 'admin') {
+      document.getElementById('usersLink').style.display = 'block';
+      loadUsers();
+  }
+
+  let last = localStorage.getItem("lastSection") || "dashboardSection";
+  showSection(last);
+  loadStudents(1);
+  loadAttendance();
+  loadStaffProfiles();
+  document.getElementById('attDate').value = new Date().toISOString().split('T')[0];
+  
+  // Hide role selector in staff profiles if not admin
+  if (localStorage.getItem("role") !== 'admin') {
+      document.getElementById('staffRole').style.display = 'none';
+  }
+}
+
+function loadStudents(page = 1) {
+    currentPage = page;
+    fetch(`${API_BASE}/students?page=${page}&limit=10`, {
+        headers: getAuthHeaders()
+    })
+    .then(res => {
+        if(res.status === 401) { logout(); throw new Error('Unauthorized'); }
+        return res.json();
+    })
+    .then(data => {
+        if (data.success) {
+            students = data.data; // Update global state
+            totalPages = data.totalPages;
+            document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${totalPages || 1}`;
+            
+            // Note: For an accurate dashboard count, we'll use `data.total` from the backend pagination structure.
+            document.getElementById("count").innerText = data.total || 0;
+            displayStudents();
+        }
+    })
+    .catch(err => console.log(err));
+}
+
+function prevPage() {
+    if (currentPage > 1) {
+        loadStudents(currentPage - 1);
+    }
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        loadStudents(currentPage + 1);
+    }
+}
+
+window.onload = function(){
+  const urlParams = new URLSearchParams(window.location.search);
+  const resetToken = urlParams.get('resetToken');
+  
+  if(resetToken) {
+      handlePasswordReset(resetToken);
+      return;
+  }
+
+  if (localStorage.getItem("isLoggedIn") === "true" && localStorage.getItem("token")) {
+      startApp();
+      startSessionTimer();
+  } else {
+      document.getElementById("loginPage").style.display = "flex";
+      document.getElementById("sidebar").style.display = "none";
+      document.querySelectorAll(".main").forEach(sec => sec.style.display = "none");
+  }
+}
+
+async function showForgotPassword() {
+    let email = prompt("Enter your registered email address:");
+    if (!email) return;
+
+    try {
+        let res = await fetch(`${API_BASE}/auth/forgot-password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        });
+        let data = await res.json();
+        alert(data.message);
+    } catch (err) {
+        alert("Server error");
+    }
+}
+
+async function handlePasswordReset(token) {
+    let newPass = prompt("Enter new password (min 6 characters) for your reset:");
+    if (!newPass) {
+        window.location.href = "/"; // redirect back
+        return;
+    }
+
+    try {
+        let res = await fetch(`${API_BASE}/auth/reset-password/${token}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: newPass })
+        });
+        let data = await res.json();
+        alert(data.message || (data.errors ? JSON.stringify(data.errors) : "Error"));
+        window.location.href = "/"; // redirect back
+    } catch (err) {
+        alert("Server error");
+        window.location.href = "/";
+    }
+}
+
+// ADD / EDIT STUDENT
+function submitStudent(event){
+  event.preventDefault();
+  let editId = document.getElementById("editId").value;
+  let name = document.getElementById("name").value;
+  let phone = document.getElementById("phone").value;
+  let email = document.getElementById("email").value;
+  let parent = document.getElementById("parent").value;
+  let address = document.getElementById("address").value;
+  let notes = document.getElementById("notes").value;
+  let course = document.getElementById("course").value;
+  let photoFile = document.getElementById("photo").files[0];
+
+  function saveStudent(photoData){
+    let studentObj = {
+      name, phone, email, parent, address, notes, course,
+      photo: photoData || 'https://via.placeholder.com/45',
+      payment: editId ? students.find(s => s._id === editId).payment : "Pending",
+      addedDate: new Date().toLocaleDateString()
+    };
+    
+    if(editId){
+      fetch(`${API_BASE}/students/${editId}`, {
+         method: "PUT",
+         headers: getAuthHeaders(),
+         body: JSON.stringify(studentObj)
+      })
+      .then(res => res.json())
+      .then(data => {
+         if(data.success) {
+             alert("Student updated Successfully");
+             loadStudents(currentPage);
+         } else {
+             alert(JSON.stringify(data.errors || data.message));
+         }
+      })
+      .catch(err => console.log(err));
+    } else {
+      fetch(`${API_BASE}/students`, {
+         method: "POST",
+         headers: getAuthHeaders(),
+         body: JSON.stringify(studentObj)
+      })
+      .then(res => res.json())
+      .then(data => {
+         if(data.success) {
+             alert("Student Added Successfully");
+             loadStudents(currentPage);
+         } else {
+             alert(JSON.stringify(data.errors || data.message));
+         }
+      })
+      .catch(err => console.log(err));
+    }
+    
+    document.getElementById("studentForm").reset();
+    document.getElementById("editId").value = "";
+  }
+
+  if(photoFile){
+    let reader = new FileReader();
+    reader.onload = function(){ saveStudent(reader.result); }
+    reader.readAsDataURL(photoFile);
+  } else {
+    // Retain existing image if we're editing and didn't upload a new one
+    if (editId) {
+       let tempS = students.find(s => s._id === editId);
+       let oldPhoto = tempS ? tempS.photo : null;
+       saveStudent(oldPhoto);
+    } else {
+       saveStudent(null);
+    }
+  }
+}
+
+// DISPLAY STUDENTS & CHART
+function displayStudents(){
+  let table = document.getElementById("studentTable");
+  let filter = document.getElementById("paymentFilter").value;
+  table.innerHTML = `<tr><th>ID</th><th>Photo</th><th>Name</th><th>Phone</th><th>Email</th><th>Parent</th><th>Address</th><th>Notes</th><th>Course</th><th>Payment</th><th>Action</th></tr>`;
+  
+  let search = document.getElementById("searchInput").value.toLowerCase();
+  
+  let filtered = students.filter(s => {
+    let matchesSearch = (s.name && s.name.toLowerCase().includes(search)) || 
+                        (s.phone && s.phone.toLowerCase().includes(search)) || 
+                        (s.course && s.course.toLowerCase().includes(search));
+    let matchesPayment = filter === 'all' || s.payment === filter;
+    return matchesSearch && matchesPayment;
+  });
+
+  filtered.forEach(s => {
+    let row = table.insertRow();
+    row.insertCell(0).innerText = s._id.substring(s._id.length - 6); // Shorten ID for display
+    row.insertCell(1).innerHTML = `<img src="${s.photo || 'https://via.placeholder.com/45'}">`;
+    row.insertCell(2).innerText = s.name;
+    row.insertCell(3).innerText = s.phone;
+    row.insertCell(4).innerText = s.email;
+    row.insertCell(5).innerText = s.parent;
+    row.insertCell(6).innerText = s.address;
+    row.insertCell(7).innerText = s.notes;
+    row.insertCell(8).innerText = s.course;
+    row.insertCell(9).innerHTML = `<button onclick="togglePayment('${s._id}')">${s.payment}</button>`;
+    row.insertCell(10).innerHTML = `<button onclick="editStudent('${s._id}')">Edit</button><button onclick="deleteStudent('${s._id}')">Delete</button>`;
+  });
+  
+  document.getElementById("today").innerText = students.filter(s => s.addedDate === new Date().toLocaleDateString()).length;
+  document.getElementById("paidCount").innerText = students.filter(s => s.payment === 'Paid').length;
+  document.getElementById("pendingCount").innerText = students.filter(s => s.payment === 'Pending').length;
+  
+  updateChart();
+}
+
+function togglePayment(id){
+  let s = students.find(s => s._id === id);
+  if(!s) return;
+  
+  let newPayment = s.payment === "Paid" ? "Pending" : "Paid";
+  
+  if(confirm(`Change payment status to ${newPayment}?`)){
+    fetch(`${API_BASE}/students/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ payment: newPayment })
+    })
+    .then(res => res.json())
+    .then(() => {
+      loadStudents(currentPage); 
+    })
+    .catch(err => console.log(err));
+  }
+}
+
+function editStudent(id){
+    let s = students.find(s => s._id === id);
+    if(!s) return;
+    
+    document.getElementById("editId").value = s._id;
+    document.getElementById("name").value = s.name;
+    document.getElementById("phone").value = s.phone;
+    document.getElementById("email").value = s.email;
+    document.getElementById("parent").value = s.parent;
+    document.getElementById("address").value = s.address;
+    document.getElementById("notes").value = s.notes;
+    document.getElementById("course").value = s.course;
+    
+    showSection("studentsSection");
+}
+
+function deleteStudent(id){
+    if(confirm("Delete Student?")){
+        fetch(`${API_BASE}/students/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders()
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert("Deleted");
+            loadStudents(currentPage); // Reload silently instead of full page refresh
+        })
+        .catch(err => console.log(err));
+    }
+}
+
+function updateChart(){
+  let ctx = document.getElementById('courseChart').getContext('2d');
+  let courses = [...new Set(students.map(s => s.course))];
+  let counts = courses.map(c => students.filter(s => s.course === c).length);
+  
+  if(courseChart) courseChart.destroy();
+  
+  courseChart = new Chart(ctx, {
+    type: 'bar',
+    data: {labels: courses, datasets: [{label: 'Admissions', data: counts, backgroundColor: 'rgba(0,198,255,0.7)'}]},
+    options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
+  });
+}
+
+function exportCSV(){
+  let csv = 'ID,Name,Phone,Email,Parent,Address,Notes,Course,Payment,Added Date\n';
+  students.forEach(s => {
+      csv += `"${s._id}","${s.name}","${s.phone}","${s.email}","${s.parent}","${s.address}","${s.notes}","${s.course}","${s.payment}","${s.addedDate}"\n`;
+  });
+  let blob = new Blob([csv], {type: 'text/csv'});
+  let link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'students.csv';
+  link.click();
+}
+
+// STAFF ATTENDANCE LOGIC
+let attendanceList = [];
+
+function loadAttendance() {
+    fetch(`${API_BASE}/attendance`, { headers: getAuthHeaders() })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            attendanceList = data.data;
+            displayAttendance();
+        }
+    })
+    .catch(err => console.log(err));
+}
+
+function displayAttendance() {
+    let table = document.getElementById("attendanceTable");
+    table.innerHTML = `<tr><th>Date</th><th>Staff Name</th><th>Status</th><th>Notes</th><th>Action</th></tr>`;
+    
+    attendanceList.forEach(att => {
+        let row = table.insertRow();
+        row.insertCell(0).innerText = att.date;
+        row.insertCell(1).innerText = att.staffName;
+        // Make the status cell visually distinct
+        let statusColor = att.status === 'Present' ? '#00e676' : 
+                          att.status === 'Absent' ? '#ff1744' : 
+                          att.status === 'Half-Day' ? '#ff9100' : '#29b6f6';
+        row.insertCell(2).innerHTML = `<strong style="color:${statusColor}">${att.status}</strong>`;
+        row.insertCell(3).innerText = att.notes || '';
+        row.insertCell(4).innerHTML = `<button onclick="editAttendance('${att._id}')">Edit</button> <button onclick="deleteAttendance('${att._id}')">Delete</button>`;
+    });
+}
+
+function submitAttendance(event) {
+    event.preventDefault();
+    let id = document.getElementById("attEditId").value;
+    let staffName = document.getElementById("attStaffName").value;
+    let date = document.getElementById("attDate").value;
+    let status = document.getElementById("attStatus").value;
+    let notes = document.getElementById("attNotes").value;
+    
+    let payload = { staffName, date, status, notes };
+    let url = id ? `${API_BASE}/attendance/${id}` : `${API_BASE}/attendance`;
+    let method = id ? "PUT" : "POST";
+    
+    fetch(url, {
+        method: method,
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Attendance saved!");
+            loadAttendance();
+            document.getElementById("attendanceForm").reset();
+            document.getElementById("attEditId").value = "";
+            document.getElementById('attDate').value = new Date().toISOString().split('T')[0];
+        } else {
+            alert(data.message || JSON.stringify(data.errors));
+        }
+    })
+    .catch(err => console.log(err));
+}
+
+function editAttendance(id) {
+    let att = attendanceList.find(a => a._id === id);
+    if(!att) return;
+    
+    document.getElementById("attEditId").value = att._id;
+    document.getElementById("attStaffName").value = att.staffName;
+    document.getElementById("attDate").value = att.date;
+    document.getElementById("attStatus").value = att.status;
+    document.getElementById("attNotes").value = att.notes;
+    
+    showSection('attendanceSection');
+}
+
+function deleteAttendance(id) {
+    if(confirm("Delete this attendance record?")) {
+        fetch(`${API_BASE}/attendance/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders()
+        })
+        .then(res => res.json())
+        .then(() => {
+            loadAttendance();
+        })
+        .catch(err => console.log(err));
+    }
+}
+
+// USERS LOGIC
+let staffProfiles = [];
+
+function loadStaffProfiles() {
+    fetch(`${API_BASE}/staff`, { headers: getAuthHeaders() })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            staffProfiles = data.data;
+            displayStaffProfiles();
+        }
+    })
+    .catch(err => console.log(err));
+}
+
+function displayStaffProfiles() {
+    let table = document.getElementById("staffProfilesTable");
+    table.innerHTML = `<tr><th>Name</th><th>Email</th><th>Phone</th><th>Aadhaar</th><th>Experience</th><th>Role</th><th>Action</th></tr>`;
+    
+    let search = document.getElementById("staffSearchInput").value.toLowerCase();
+    
+    let filtered = staffProfiles.filter(s => {
+        return (s.name && s.name.toLowerCase().includes(search));
+    });
+
+    let isAdmin = localStorage.getItem("role") === 'admin';
+
+    filtered.forEach(s => {
+        let row = table.insertRow();
+        row.insertCell(0).innerText = s.name;
+        row.insertCell(1).innerText = s.email;
+        row.insertCell(2).innerText = s.phone;
+        row.insertCell(3).innerText = s.aadhaarNumber;
+        row.insertCell(4).innerText = s.workExperience;
+        let roleHtml = s.role === 'admin' ? '<strong style="color:#ffcc00">Admin</strong>' : 
+                       s.role === 'manager' ? '<strong style="color:#00e676">Manager</strong>' : 'Staff';
+        row.insertCell(5).innerHTML = roleHtml;
+        
+        // Only show Delete button if admin
+        let deleteBtn = isAdmin ? `<button onclick="deleteStaffProfile('${s._id}')" style="background-color: #f44336; color: white; margin-left: 5px;">Remove</button>` : '';
+        row.insertCell(6).innerHTML = `<button onclick="editStaffProfile('${s._id}')">Edit</button> ${deleteBtn}`;
+    });
+}
+
+function submitStaffProfile(event) {
+    event.preventDefault();
+    let id = document.getElementById("staffEditId").value;
+    let name = document.getElementById("staffName").value;
+    let email = document.getElementById("staffEmail").value;
+    let phone = document.getElementById("staffPhone").value;
+    let aadhaarNumber = document.getElementById("staffAadhaar").value;
+    let address = document.getElementById("staffAddress").value;
+    let workExperience = document.getElementById("staffExperience").value;
+    let certificates = document.getElementById("staffCertificates").value.split(',').map(c => c.trim()).filter(c => c);
+    let role = document.getElementById("staffRole").value;
+
+    let payload = { name, email, phone, aadhaarNumber, address, workExperience, certificates };
+    
+    // Only send role if it's visible (admin check)
+    if (localStorage.getItem("role") === 'admin') {
+        payload.role = role;
+    }
+
+    let url = id ? `${API_BASE}/staff/${id}` : `${API_BASE}/staff`;
+    let method = id ? "PUT" : "POST";
+
+    fetch(url, {
+        method: method,
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Staff Profile Saved!");
+            loadStaffProfiles();
+            document.getElementById("staffProfileForm").reset();
+            document.getElementById("staffEditId").value = "";
+        } else {
+            alert(data.message || JSON.stringify(data.errors));
+        }
+    })
+    .catch(err => console.log(err));
+}
+
+function editStaffProfile(id) {
+    let s = staffProfiles.find(x => x._id === id);
+    if (!s) return;
+    document.getElementById("staffEditId").value = s._id;
+    document.getElementById("staffName").value = s.name;
+    document.getElementById("staffEmail").value = s.email;
+    document.getElementById("staffPhone").value = s.phone;
+    document.getElementById("staffAadhaar").value = s.aadhaarNumber;
+    document.getElementById("staffAddress").value = s.address;
+    document.getElementById("staffExperience").value = s.workExperience;
+    document.getElementById("staffCertificates").value = s.certificates ? s.certificates.join(", ") : "";
+    document.getElementById("staffRole").value = s.role;
+    
+    showSection('staffProfilesSection');
+}
+
+function deleteStaffProfile(id) {
+    if (confirm("Remove Staff Profile?")) {
+        fetch(`${API_BASE}/staff/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders()
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Removed Successfully");
+                loadStaffProfiles();
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(err => console.log(err));
+    }
+}
+
+function loadUsers() {
+    fetch(`${API_BASE}/users`, { headers: getAuthHeaders() })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            let table = document.getElementById("usersTable");
+            table.innerHTML = `<tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Action</th></tr>`;
+            data.data.forEach(u => {
+                let row = table.insertRow();
+                row.insertCell(0).innerText = u._id.substring(u._id.length - 6);
+                row.insertCell(1).innerText = u.username;
+                row.insertCell(2).innerText = u.email;
+                let roleHtml = u.role === 'admin' ? '<strong style="color:#ffcc00">Admin</strong>' : 
+                               u.role === 'manager' ? '<strong style="color:#00e676">Manager</strong>' : 'Staff';
+                row.insertCell(3).innerHTML = roleHtml;
+                row.insertCell(4).innerHTML = `<button onclick="editUserRole('${u._id}', '${u.role}')">Change Role</button> <button onclick="deleteUserRow('${u._id}')" style="background-color: #f44336; color: white; margin-left: 5px;">Remove</button>`;
+            });
+        }
+    })
+    .catch(err => console.log(err));
+}
+
+function editUserRole(id, currentRole) {
+    let newRole = prompt("Enter new role (admin, manager, staff):", currentRole);
+    if(newRole && ['admin', 'manager', 'staff'].includes(newRole.toLowerCase())) {
+        fetch(`${API_BASE}/users/${id}`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ role: newRole.toLowerCase() })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                alert("Role updated successfully!");
+                loadUsers();
+            } else {
+                alert(data.message || "Error updating role.");
+            }
+        })
+        .catch(err => {
+            console.log(err);
+            alert("Error: Please make sure you have restarted your Node.js server to apply the latest API endpoints.");
+        });
+    } else if (newRole) {
+        alert("Invalid role.");
+    }
+}
+
+function deleteUserRow(id) {
+    if(confirm("Are you sure you want to completely remove this App User?")) {
+        fetch(`${API_BASE}/users/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders()
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                alert("User removed successfully!");
+                loadUsers();
+            } else {
+                alert(data.message || "Error removing user.");
+            }
+        })
+        .catch(err => {
+            console.log(err);
+            alert("Error: Please make sure you have restarted your Node.js server to apply the latest API endpoints.");
+        });
+    }
+}
+
+function submitUser(event) {
+    event.preventDefault();
+    let username = document.getElementById("userName").value;
+    let email = document.getElementById("userEmail").value;
+    let password = document.getElementById("userPassword").value;
+    let role = document.getElementById("userRole").value;
+
+    fetch(`${API_BASE}/users`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username, email, password, role })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("User added successfully!");
+            document.getElementById("userForm").reset();
+            loadUsers();
+        } else {
+            alert(data.message || JSON.stringify(data.errors));
+        }
+    })
+    .catch(err => console.log(err));
+}
+</script>
+</body>
+</html>
