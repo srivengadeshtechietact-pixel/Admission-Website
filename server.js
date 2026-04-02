@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // MongoDB Connection
-const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/failureConsultancy";
+const mongoUri = process.env.MONGO_URL || "mongodb://127.0.0.1:27017/failureConsultancy";
 mongoose.connect(mongoUri)
     .then(() => console.log("MongoDB Connected"))
     .catch(err => console.log(err));
